@@ -78,6 +78,15 @@ terraform apply
 ```
 - This creates the AWS VPC, EKS cluster, and node groups. Outputs are used by other workspaces.
 
+Quick fix: add & update the HashiCorp Helm repo
+# Make sure you have the Helm binary installed and on your PATH.
+# in PowerShell, run:
+```sh
+helm repo add hashicorp https://helm.releases.hashicorp.com
+helm repo update
+```
+
+
 ### 3. Deploy Consul Federation
 ```sh
 cd ../consul
@@ -86,6 +95,38 @@ terraform plan
 terraform apply
 ```
 - This deploys Consul to both clusters using Helm, federates them, and manages federation secrets.
+## if you encounter the following errors:
+# Kubernetes cluster unreachable: the server has asked for the client to provide # # credentials
+# │
+# │   with helm_release.consul_dc1,
+# │   on main.tf line 68, in resource "helm_release" "consul_dc1"
+## use aws cloud shell
+```sh
+# (If you need to override region; otherwise CloudShell uses your console region)
+export AWS_REGION=us-east-2  
+
+# Replace <cluster-name> with your EKS cluster’s name
+aws eks update-kubeconfig \
+  --name <cluster-name> \
+  --region $AWS_REGION
+
+kubectl edit configmap aws-auth -n kube-system
+
+```
+# data:
+#   mapRoles: |
+#     - groups:
+#       - system:bootstrappers
+#       - system:nodes
+#       rolearn: arn:aws:iam::[roleID]]:role/# consul-group-eks-node-group-20250521171336625200000002
+#       username: system:node:{{EC2PrivateDNSName}}
+#   mapUsers: |
+#     - userarn: arn:aws:iam::[usearnID]:user/dev-cli-user
+#       username: dev-cli-user
+#       groups:
+#         - system:masters
+
+
 
 ### 4. Deploy Sample Microservices (Counting Service)
 ```sh

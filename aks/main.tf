@@ -10,7 +10,6 @@ resource "random_pet" "prefix" {}
 # Configure the Azure provider to manage resources in Azure.
 provider "azurerm" {
   features {}
-
   subscription_id = var.subscription_id
 }
 

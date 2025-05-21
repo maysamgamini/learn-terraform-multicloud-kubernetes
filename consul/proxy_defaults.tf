@@ -5,7 +5,7 @@
 # Uncomment and apply after the main Consul configuration if you want to customize global proxy settings for Consul service mesh.
 # These resources set the meshGateway mode to local for all proxies in the default namespace.
 
-/*
+
 ## Apply the configuration in main.tf before uncommenting and applying the configuration in this file.
 
 resource "kubernetes_manifest" "eks_proxy_defaults" {
@@ -43,4 +43,3 @@ resource "kubernetes_manifest" "aks_proxy_defaults" {
     }
   }
 }
-*/

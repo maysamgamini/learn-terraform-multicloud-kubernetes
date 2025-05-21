@@ -18,6 +18,7 @@ data "terraform_remote_state" "aks" {
 # Configure the Azure provider for AKS resources
 provider "azurerm" {
   features {}
+  subscription_id = var.subscription_id
 }
 
 # Fetch AKS cluster details for Kubernetes provider configuration

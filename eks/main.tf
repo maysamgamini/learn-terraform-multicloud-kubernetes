@@ -11,6 +11,10 @@ provider "aws" {
 # Fetch available availability zones in the selected region
 data "aws_availability_zones" "available" {}
 
+data "aws_eks_cluster" "cluster" {
+  name = module.eks.cluster_name
+}
+
 # Local value for generating a unique cluster name
 locals {
   cluster_name = "education-eks-${random_string.suffix.result}"
@@ -74,8 +78,8 @@ module "eks" {
       name           = "consul-group"
       instance_types = ["t3a.medium"]
       min_size       = 1
-      max_size       = 3
-      desired_size   = 3
+      max_size       = 4
+      desired_size   = 4
     }
   }
 
@@ -110,11 +114,13 @@ module "eks" {
 }
 
 # Reference the AWS managed IAM policy for the EBS CSI driver
+# OpenID Connect (OIDC) is an identity layer built on top of the OAuth 2.0 protocol. It lets clients verify the identity of users or services based on 
+# authentication from an external Identity Provider (IdP).
 data "aws_iam_policy" "ebs_csi_policy" {
   arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
 }
 
-# Create an IAM role for the EBS CSI driver using OIDC federation
+# Create an IAM role for Service Account on the EBS CSI driver using OIDC federation
 module "irsa-ebs-csi" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-assumable-role-with-oidc"
   version = "5.40.0"
@@ -127,13 +133,31 @@ module "irsa-ebs-csi" {
 }
 
 # Deploy the EBS CSI driver as an EKS add-on, using the IAM role above
+# The Amazon EBS CSI Driver is a Kubernetes Container Storage Interface (CSI) plugin that lets your EKS cluster treat Amazon EBS volumes as Kubernetes
+# Volumes—handling their full lifecycle (provision, attach, mount, detach, delete).
+
 resource "aws_eks_addon" "ebs-csi" {
   cluster_name             = module.eks.cluster_name
   addon_name               = "aws-ebs-csi-driver"
-  addon_version            = "v1.43.0"
+  addon_version            = "v1.43.0-eksbuild.1"
   service_account_role_arn = module.irsa-ebs-csi.iam_role_arn
   tags = {
     "eks_addon" = "ebs-csi"
     "terraform" = "true"
+  }
+}
+
+resource "kubernetes_storage_class" "gp2_default" {
+  metadata {
+    name = "gp2"
+    annotations = {
+      "storageclass.kubernetes.io/is-default-class" = "true"
+    }
+  }
+  storage_provisioner = "kubernetes.io/aws-ebs"
+  reclaim_policy       = "Delete"
+  volume_binding_mode  = "WaitForFirstConsumer"
+  parameters = {
+    type = "gp2"
   }
 }

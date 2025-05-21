@@ -47,11 +47,8 @@ provider "kubernetes" {
     args        = ["eks", "get-token", "--cluster-name", data.aws_eks_cluster.cluster.name]
     command     = "aws"
   }
-
-  experiments {
-    manifest_resource = true
-  }
 }
+
 
 # Configure the Helm provider for EKS
 provider "helm" {
@@ -76,7 +73,12 @@ resource "helm_release" "consul_dc1" {
   version    = "1.3.1"
 
   values = [
-    file("dc1.yaml")
+    file("dc1.yaml"),
+    yamlencode({
+      server = {
+        storageClass = "gp2"
+      }
+    })
   ]
 }
 
@@ -103,6 +105,7 @@ data "terraform_remote_state" "aks" {
 # Configure the Azure provider for AKS resources
 provider "azurerm" {
   features {}
+  subscription_id = var.subscription_id
 }
 
 # Fetch AKS cluster details for Kubernetes and Helm provider configuration
@@ -118,10 +121,6 @@ provider "kubernetes" {
   client_certificate     = base64decode(data.azurerm_kubernetes_cluster.cluster.kube_config.0.client_certificate)
   client_key             = base64decode(data.azurerm_kubernetes_cluster.cluster.kube_config.0.client_key)
   cluster_ca_certificate = base64decode(data.azurerm_kubernetes_cluster.cluster.kube_config.0.cluster_ca_certificate)
-
-  experiments {
-    manifest_resource = true
-  }
 }
 
 # Configure the Helm provider for AKS
