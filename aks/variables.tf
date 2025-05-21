@@ -11,3 +11,8 @@ variable "appId" {
 variable "password" {
   description = "Azure Kubernetes Service Cluster password (client secret for authentication)."
 }
+
+variable "subscription_id" {
+  type        = string
+  description = "483f6e03-efc7-49b5-87a3-b2684c3f1a13"
+}

@@ -10,6 +10,8 @@ resource "random_pet" "prefix" {}
 # Configure the Azure provider to manage resources in Azure.
 provider "azurerm" {
   features {}
+
+  subscription_id = var.subscription_id
 }
 
 # Create a resource group to contain the AKS cluster and related resources.
@@ -30,7 +32,7 @@ resource "azurerm_kubernetes_cluster" "default" {
   location            = azurerm_resource_group.default.location
   resource_group_name = azurerm_resource_group.default.name
   dns_prefix          = "${random_pet.prefix.id}-k8s"
-  kubernetes_version  = "1.26.3"
+  kubernetes_version  = "1.32.3"
 
   default_node_pool {
     name            = "default"

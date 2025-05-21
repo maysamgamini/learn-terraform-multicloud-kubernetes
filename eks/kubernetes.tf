@@ -9,10 +9,6 @@
 # It is required for the EKS module to complete successfully, particularly for creating the aws-auth ConfigMap.
 # Note: Do not schedule deployments or services in this workspace; keep it modular as per best practices.
 
-# Fetch EKS cluster endpoint and authentication data for provider configuration
-data "aws_eks_cluster" "cluster" {
-  name = module.eks.cluster_name
-}
 
 data "aws_eks_cluster_auth" "cluster" {
   name = module.eks.cluster_name

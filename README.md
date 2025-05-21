@@ -20,6 +20,7 @@ This repository contains Terraform configuration files to deploy a Consul-federa
 - [Helm](https://helm.sh/docs/intro/install/)
 - Sufficient permissions in both AWS and Azure accounts
 
+
 ---
 
 ## Credential Setup
