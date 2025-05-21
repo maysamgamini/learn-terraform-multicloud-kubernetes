@@ -1,8 +1,13 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
+# This Terraform configuration deploys a sample microservices application (counting and dashboard services)
+# across two Kubernetes clusters: Azure AKS and AWS EKS. It demonstrates multi-cloud service federation
+# using Consul and cross-cluster service discovery.
+
 # ## AKS resources
 
+# Import the remote state from the AKS workspace to retrieve output values (resource group and cluster name)
 data "terraform_remote_state" "aks" {
   backend = "local"
   config = {
@@ -10,14 +15,18 @@ data "terraform_remote_state" "aks" {
   }
 }
 
+# Configure the Azure provider for AKS resources
 provider "azurerm" {
   features {}
 }
 
+# Fetch AKS cluster details for Kubernetes provider configuration
 data "azurerm_kubernetes_cluster" "cluster" {
   name                = data.terraform_remote_state.aks.outputs.kubernetes_cluster_name
   resource_group_name = data.terraform_remote_state.aks.outputs.resource_group_name
 }
+
+# Configure the Kubernetes provider for AKS
 provider "kubernetes" {
   alias                  = "aks"
   host                   = data.azurerm_kubernetes_cluster.cluster.kube_config.0.host
@@ -26,6 +35,7 @@ provider "kubernetes" {
   cluster_ca_certificate = base64decode(data.azurerm_kubernetes_cluster.cluster.kube_config.0.cluster_ca_certificate)
 }
 
+# Deploy the counting service Pod to AKS
 resource "kubernetes_pod" "counting" {
   provider = kubernetes.aks
 
@@ -49,6 +59,7 @@ resource "kubernetes_pod" "counting" {
   }
 }
 
+# Expose the counting service Pod via a ClusterIP service in AKS
 resource "kubernetes_service" "counting" {
   provider = kubernetes.aks
   metadata {
@@ -74,6 +85,7 @@ resource "kubernetes_service" "counting" {
 
 # EKS resources 
 
+# Import the remote state from the EKS workspace to retrieve output values (region and cluster name)
 data "terraform_remote_state" "eks" {
   backend = "local"
   config = {
@@ -81,14 +93,17 @@ data "terraform_remote_state" "eks" {
   }
 }
 
+# Configure the AWS provider for EKS resources
 provider "aws" {
   region = data.terraform_remote_state.eks.outputs.region
 }
 
+# Fetch EKS cluster details for Kubernetes provider configuration
 data "aws_eks_cluster" "cluster" {
   name = data.terraform_remote_state.eks.outputs.cluster_name
 }
 
+# Configure the Kubernetes provider for EKS
 provider "kubernetes" {
   alias                  = "eks"
   host                   = data.aws_eks_cluster.cluster.endpoint
@@ -100,6 +115,7 @@ provider "kubernetes" {
   }
 }
 
+# Deploy the dashboard service Pod to EKS, with Consul Connect upstream annotation for cross-cluster service discovery
 resource "kubernetes_pod" "dashboard" {
   provider = kubernetes.eks
 
@@ -131,6 +147,7 @@ resource "kubernetes_pod" "dashboard" {
   }
 }
 
+# Expose the dashboard service Pod via a LoadBalancer service in EKS
 resource "kubernetes_service" "dashboard" {
   provider = kubernetes.eks
 

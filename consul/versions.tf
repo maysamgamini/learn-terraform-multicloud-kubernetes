@@ -1,6 +1,9 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
+# This file specifies the required Terraform version and provider versions for the Consul federation configuration.
+# It ensures compatibility and repeatability for deployments across Kubernetes clusters using Helm and Kubernetes providers.
+
 terraform {
   required_providers {
     helm = {

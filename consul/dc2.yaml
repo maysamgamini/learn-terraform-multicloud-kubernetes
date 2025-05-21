@@ -1,6 +1,10 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
+# This file contains Helm values for deploying Consul to the AKS cluster (datacenter dc2).
+# It is used by the Terraform Helm provider to configure Consul for federation and service mesh demos.
+# WARNING: This configuration disables ACLs and does not use gossip encryption. Do not use in production.
+
 ## WARNING! This Consul configuration disables ACLs and does not use gossip encryption. It should not be used in production environments.
 
 global:
@@ -33,3 +37,32 @@ server:
         - key: serverConfigJSON
           path: config.json
       load: true
+
+
+# In Consul, two foundational security features you’ll almost always enable in production are ACLs (Access Control Lists) 
+# 1. ACLs (Access Control Lists)
+
+# What are they?
+# Consul ACLs control who (which token) can read, write, or administer Consul data and operations—things like KV entries, service registrations,
+# catalog queries, and even federation controls. Without ACLs, any client that can talk to your Consul HTTP API can create or destroy services,
+# read secrets, or reconfigure your mesh.
+
+# Key components
+# Policies: Define sets of capabilities (e.g. “read-only on kv/”, “write on service registrations”).
+# Tokens: Bearer tokens that carry a policy or combination of policies.
+# Bootstrap token: A special token with full “management” rights used to create other tokens and policies.
+# Replication token: Used to replicate ACL data between datacenters when federation is enabled.
+
+# Why you need it
+# Least‑privilege: Grant only the minimum rights that your applications or users need.
+# Auditability: You can track which token—and therefore which application—made changes.
+# Multi‑tenant isolation: Run separate services or teams in the same cluster without giving them carte blanche.
+
+# 2. Gossip encryption
+# Gossip encryption is a feature that allows you to encrypt the gossip protocol used by Consul to communicate between nodes. 
+# This ensures that sensitive information is not exposed to unauthorized users.
+
+# How to enable it
+# 1. Enable gossip encryption
+# 2. Configure gossip encryption
+# 3. Restart Consul

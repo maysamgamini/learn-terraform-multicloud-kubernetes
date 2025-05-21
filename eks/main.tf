@@ -1,21 +1,28 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
+# This Terraform configuration provisions an Amazon EKS (Elastic Kubernetes Service) cluster and supporting infrastructure for multi-cloud federation demos.
+# It creates a VPC, subnets, security groups, and an EKS cluster with managed node groups. It also configures IAM roles for the EBS CSI driver add-on.
+
 provider "aws" {
-  region = "us-east-2"
+  region = "us-east-2" # AWS region for all resources
 }
 
+# Fetch available availability zones in the selected region
 data "aws_availability_zones" "available" {}
 
+# Local value for generating a unique cluster name
 locals {
   cluster_name = "education-eks-${random_string.suffix.result}"
 }
 
+# Generate a random string to ensure unique resource names
 resource "random_string" "suffix" {
   length  = 8
   special = false
 }
 
+# Create a new VPC for the EKS cluster using the official AWS VPC module
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "5.1.1"
@@ -30,6 +37,7 @@ module "vpc" {
   single_nat_gateway   = true
   enable_dns_hostnames = true
 
+  # Tag subnets for Kubernetes load balancer discovery
   tags = {
     "kubernetes.io/cluster/${local.cluster_name}" = "shared"
   }
@@ -45,7 +53,7 @@ module "vpc" {
   }
 }
 
-
+# Create the EKS cluster and managed node group using the official AWS EKS module
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
   version = "19.15.3"
@@ -71,6 +79,7 @@ module "eks" {
     }
   }
 
+  # Additional security group rules for node communication
   node_security_group_additional_rules = {
     ingress_self_all = {
       description = "Node to node all ports/protocols"
@@ -100,10 +109,12 @@ module "eks" {
   }
 }
 
+# Reference the AWS managed IAM policy for the EBS CSI driver
 data "aws_iam_policy" "ebs_csi_policy" {
   arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
 }
 
+# Create an IAM role for the EBS CSI driver using OIDC federation
 module "irsa-ebs-csi" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-assumable-role-with-oidc"
   version = "4.7.0"
@@ -115,6 +126,7 @@ module "irsa-ebs-csi" {
   oidc_fully_qualified_subjects = ["system:serviceaccount:kube-system:ebs-csi-controller-sa"]
 }
 
+# Deploy the EBS CSI driver as an EKS add-on, using the IAM role above
 resource "aws_eks_addon" "ebs-csi" {
   cluster_name             = module.eks.cluster_name
   addon_name               = "aws-ebs-csi-driver"
